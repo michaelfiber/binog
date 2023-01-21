@@ -9,3 +9,6 @@ The TSX files are concatenated and dumped into index.html at the `/*{{tsx}}*/` t
 
 ## Try it out
 https://cubeofb.org/bingo
+
+## Note:
+The card generation doesn't work well yet.
