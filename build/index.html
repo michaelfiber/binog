@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>nodeless</title>
+
+	<link rel="stylesheet" href="./bulma.min.css">
+	<link rel="stylesheet" href="./style.css">
+
+	<script src="./react.production.min.js"></script>
+	<script src="./react-dom.production.min.js"></script>
+	<script src="./typescriptServices.js"></script>
+	<style type="text/css">
+		html, body {
+			background-color: black;
+			color: #666;
+		}
+	</style>
+</head>
+
+<body>
+	<div id="root"></div>
+
+	<script id="test" type="text/tsx">
+		const useState = React.useState;
+		const useContext = React.useContext;
+		const useRef = React.useRef;
+		const useEffect = React.useEffect;
+		
+		import React, { useEffect, useState } from 'react';
+
+function getRandom(from: number, to: number): number {
+	return Math.ceil(Math.random() * (to - from)) + from;
+}
+
+export default function Card() {
+	const [numbers, setNumbers] = useState<number[]>([])
+
+	useEffect(() => {
+		if (numbers.length == 0) {
+			let n: number[] = [];
+
+			let min = 1;
+			let max = 15;
+
+			for (let j = 0; j < 5; j++) {
+				for (let i = 0; i < 5; i++) {
+					let r = getRandom(min, max);
+					while (n.indexOf(r) > -1) {
+						r = getRandom(min, max);
+					}
+					n.push(r);
+				}
+
+				min += 15;
+				max += 15;
+			}
+
+			n[12] = 0;
+
+			setNumbers(n)
+		}
+	});
+
+	return (
+		<div className='card'>
+			<div className='columns'>
+				<div className='column'>B</div>
+				<div className='column'>I</div>
+				<div className='column'>N</div>
+				<div className='column'>G</div>
+				<div className='column'>0</div>
+			</div>
+			<div className='columns'>
+				<div className='column'>
+					{numbers.filter((v, i) => i < 5).map(v => <div>{v}</div>)}
+				</div>
+				<div className='column'>
+					{numbers.filter((v, i) => i >= 5 && i < 10).map(v => <div>{v}</div>)}
+				</div>
+				<div className='column'>
+					{numbers.filter((v, i) => i >= 10 && i < 15).map(v => <div>{v}</div>)}
+				</div>
+				<div className='column'>
+					{numbers.filter((v, i) => i >= 15 && i < 20).map(v => <div>{v}</div>)}
+				</div>
+				<div className='column'>
+					{numbers.filter((v, i) => i >= 20 && i < 25).map(v => <div>{v}</div>)}
+				</div>
+			</div>
+		</div>
+	)
+}
+
+import React, { useEffect, useState } from 'react';
+import Card from './Card';
+
+export default function CardHolder(props: {count: number}) {
+	const [cards, setCards] = useState<JSX.Element[]>([]);
+
+	useEffect(() => {
+		if (cards.length == 0) {
+			for (let i = 0; i < props.count; i++) {
+				cards.push(<Card />);
+			}
+		}
+	})
+
+	return (
+		<div className='card-holder'>
+			{cards}
+		</div>
+	)
+}
+
+import React, { ReactElement } from 'react';
+
+export default function Curtain(props: { children: ReactElement | ReactElement[] }) {
+	return (
+		<div className='curtain'>
+			<div className='content'>
+				{props.children}
+			</div>
+		</div>
+	)
+}
+
+import React, { useEffect } from 'react';
+
+export default function DocumentTitle(props: { title: string; }) {
+	useEffect(() => {
+		document.title = props.title
+	}, [props])
+	return (<></>)
+}
+
+import React, { useEffect, useRef, useState } from 'react';
+import CardHolder from './CardHolder';
+import DocumentTitle from './DocumentTitle'
+import Curtain from './Curtain'
+
+function saveNumbers(numbers: number[]) {
+	localStorage.setItem('binog-stored-numbers', JSON.stringify(numbers))
+}
+
+function loadNumbers(): number[] {
+	let numbersString = localStorage.getItem('binog-stored-numbers');
+	if (numbersString) {
+		return JSON.parse(numbersString)
+	}
+	return [];
+}
+
+export default function Main() {
+	const [numbers, setNumbers] = useState<number[]>([]);
+
+	const isCoolingDown = useRef(false);
+	const debounceTimer = useRef<any>(-1);
+	const pickButtonRef = useRef<HTMLButtonElement>(null);
+	const [showCards, setShowCards] = useState<boolean>(false);
+
+	const startCooldown = () => {
+		isCoolingDown.current = true;
+		if (pickButtonRef.current) pickButtonRef.current.disabled = true;
+
+		debounceTimer.current = setTimeout(() => {
+			if (pickButtonRef.current) pickButtonRef.current.disabled = false;
+			isCoolingDown.current = false;
+		}, 500);
+	}
+
+	const resetNumbers = () => {
+		clearTimeout(debounceTimer.current);
+		debounceTimer.current = -1;
+		if (pickButtonRef.current) pickButtonRef.current.disabled = false;
+
+		setNumbers([]);
+		saveNumbers([]);
+	}
+
+	const pickRandomNumber = () => {
+		if (isCoolingDown.current) return;
+
+		startCooldown();
+
+		setNumbers(n => {
+			if (n.length == 75) {
+				return n;
+			}
+
+			let randomNumber = Math.ceil(Math.random() * 75);
+
+			while (n.indexOf(randomNumber) > -1) {
+				randomNumber = Math.ceil(Math.random() * 75);
+			}
+
+			n.push(randomNumber);
+			saveNumbers(n);
+
+			return [...n];
+		})
+	}
+
+	useEffect(() => {
+		if (isCoolingDown.current) return;
+		setNumbers(loadNumbers);
+	})
+
+	return (
+		<>
+			<DocumentTitle title='BINgo!' />
+			<div className='main container noprint'>
+				<section className='section'>
+					<div>
+						<div className='columns is-mobile'>
+							<div className='column is-8'>
+								<h1 className='title has-text-light'>BINgo</h1>
+							</div>
+							<div className='column is-4 has-text-right'>
+								<button className='button is-size-7 is-rounded is-info' onClick={() => setShowCards(true)}>Generate Cards</button>
+							</div>
+						</div>
+						<div className='columns is-mobile'>
+							<div className='column'>
+								<button ref={pickButtonRef} className='button is-rounded is-success is-size-3' onClick={pickRandomNumber}>Pick Number</button>
+							</div>
+							<div className='column has-text-right'>
+								<button className='button is-rounded is-danger is-size-7' onClick={resetNumbers}>RESET</button>
+							</div>
+						</div>
+						{numbers.length >= 75 ?
+							<div className='notification is-info is-rounded is-size-1 has-text-centered'>All numbers have been called!</div>
+							: <></>}
+						<div className='number-holder columns'>
+							{numbers.reverse().map((n, i) => <span className={'column ' + (i == 0 ? 'latest' : 'is-size-3')} key={i}>{n}</span>)}
+						</div>
+					</div>
+				</section>
+			</div>
+			{showCards ?
+				<Curtain>
+					<button className='noprint button is-size-7 is-danger is-rounded' onClick={() => setShowCards(false)}>Close Cards</button>
+					<CardHolder count={10} />
+				</Curtain>
+				: <></>}
+		</>
+	)
+}
+
+
+
+		window.addEventListener('DOMContentLoaded', () => {
+			const container = document.getElementById('root');
+			const root = ReactDOM.createRoot(container, null);
+			root.render(
+				<Main />
+			)
+		});
+	</script>
+
+	<script id="builder" type="text/javascript">
+		var tsxElement = document.getElementById('test');
+		var tsxCode = tsxElement.innerText;
+
+		var jsCode = window.ts.transpile(tsxCode, { jsx: "react", module: "ESNext", target: "ESNext", removeComments: true });
+
+		jsCode = jsCode.replaceAll(/^(import.*)$/img, '')
+		jsCode = jsCode.replaceAll(/^export default/img, "")
+		jsCode = jsCode.replaceAll(/^export/img, "")
+		jsCode = jsCode.replaceAll(/\n\n/img, '\n');
+
+		var script = document.createElement('script');
+		script.type = 'text/javascript';
+		script.innerText = jsCode;
+		document.head.appendChild(script);
+
+		tsxElement.parentElement.removeChild(tsxElement);
+	</script>
+
+</body>
+
+</html>
